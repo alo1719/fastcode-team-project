@@ -4,14 +4,10 @@
 #include <immintrin.h>
 
 int main(){
-    int m=3;
+    int m=4;
     int n=4;
     int *from; // m*n
-    int *to;// 8*8 16*8 -> 10 5+5 40*40 
-    // 6 to calc output
-    // 10 -> floor
-    // 5 5
-    // 40*40
+    int *to;// 8*8
     float *to_address; // 8*8
     posix_memalign((void**)&from, 32, m*n*sizeof(int));
     posix_memalign((void**)&to, 32, 8*8*sizeof(int));
@@ -19,40 +15,24 @@ int main(){
     for (int i = 0; i < m*n; i++) {
         from[i] = i;
     }
-    // from[0] = 0;
-    // from[1] = 1;
-    // from[2] = 4;
-    // from[3] = 5;
-    // from[4] = 2;
-    // from[5] = 3;
-    // from[6] = 6;
-    // from[7] = 7;
-    // from[8] = 8;
-    // from[9] = 9;
-    // from[10] = 10;
-    // from[11] = 11;
-    // from[12] = 10;
-    // from[13] = 11;
-    // from[14] = 14;
-    // from[15] = 15;
     // ---------------------------------- kernel start -----------------------------
     float dx = n/8.0;
     float dy = m/8.0;
     __m256 bdx = _mm256_set1_ps(dx);
     __m256 col = _mm256_set_ps(7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0);
     __m256 col_diff = _mm256_mul_ps(col, bdx);
-    col_diff = _mm256_floor_ps(col_diff);//latenty 6 throughput 2
+    col_diff = _mm256_floor_ps(col_diff);
     // __m256 size = _mm256_set1_ps(32.0);
     // col_diff = _mm256_mul_ps(col_diff, size);
     printf("%f %f %f %f %f %f %f %f\n", col_diff[0], col_diff[1], col_diff[2], col_diff[3], col_diff[4], col_diff[5], col_diff[6], col_diff[7]);
     __m256 bdy = _mm256_set1_ps(dy);
     __m256 row = _mm256_set_ps(7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0);
     __m256 row_diff = _mm256_mul_ps(row, bdy);
-    row_diff = _mm256_floor_ps(row_diff);//8
+    row_diff = _mm256_floor_ps(row_diff);
     // row_diff = _mm256_mul_ps(row_diff, size);
     printf("%f %f %f %f %f %f %f %f\n", row_diff[0], row_diff[1], row_diff[2], row_diff[3], row_diff[4], row_diff[5], row_diff[6], row_diff[7]);
     __m256 orig1 = _mm256_set1_ps(row_diff[0]*n);
-    __m256 rst1 = _mm256_add_ps(orig1, col_diff);//latency 3 through 1
+    __m256 rst1 = _mm256_add_ps(orig1, col_diff);
     _mm256_store_ps(to_address, rst1);
     __m256 orig2 = _mm256_set1_ps(row_diff[1]*n);
     __m256 rst2 = _mm256_add_ps(orig2, col_diff);
@@ -78,7 +58,7 @@ int main(){
     // ---------------------------------- kernel post-processing start -----------------------------
     for (int i = 0; i < 8*8; i++) {
         to[i] = from[(int)to_address[i]];
-    }//64
+    }
     // ---------------------------------- kernel post_processing end -----------------------------
 
     // ---------------------------------- kernel end -----------------------------
