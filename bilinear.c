@@ -1,100 +1,107 @@
 #include <immintrin.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+void print256_num(__m256 var)
+{
+    float val[8];
+    memcpy(val, &var, sizeof(val));
+    printf("Numerical: %f %f %f %f %f %f %f %f\n", 
+           val[0], val[1], val[2], val[3],
+           val[4], val[5], val[6], val[7]);
+}
+
+//the default parameters are used for testing
 int main() {
-    int new_h = 5;
-    int ori_h = 10;
-    int new_w = 5;
-    int ori_w = 10;
+    int ori_h = 16;
+    int ori_w = 16;
+    int new_h = 8;
+    int new_w = 8;
     int *from; // m*n
-    int *to;// 8*8
+    float *to; // 8*8
+    posix_memalign((void**)&from, 32, ori_h*ori_w*sizeof(int));
+    posix_memalign((void**)&to, 32, 8*8*sizeof(int));
+    for (int i = 0; i < ori_h*ori_w; i++) {
+        from[i] = i;
+    }
 
-    float height_division = (float) new_h / ori_h;
-    float width_division = new_w / ori_w;
+    float height_division = (float) ori_h/ new_h;
+    float width_division = (float) ori_w / new_w;
 
-    int cur_row = 0;
-    float x = cur_row * height_division;
-    int floor_x = floor(x);
-    int floor_x_idx = floor_x * ori_w;
-
-    int floor_x_plus1 = floor_x + 1;
-    int floor_x_plus1_idx = floor_x_plus1 * ori_w;
-
-    float diff_x = x = floor_x;
-
-
-    __m256 ymm0 = _mm256_broadcast_ps(&width_division);
+    __m256 ymm0 = _mm256_set1_ps(width_division);
     __m256 ymm1 = {0, 1, 2, 3, 4, 5, 6, 7};
     ymm0 = _mm256_mul_ps(ymm1, ymm0); //y
-    // ymm0 is occupied
 
-    __m256 ymm2 = _mm256_floor_ps(ymm0); //floory
-    __m256 ymm3 = _mm256_sub_ps(ymm0, ymm2); //diffy
-    __m256 ymm4 = _mm256_set1_ps(diff_x); //diff_x
-    // ymm0 ymm2 ymm3 ymm4 are occupied
-
+    __m256 ymm2 = _mm256_floor_ps(ymm0); //floor_y
+    __m256 ymm3 = _mm256_sub_ps(ymm0, ymm2); //diff_y
     ymm1 = _mm256_set1_ps(1);
-    __m256 ymm5 = _mm256_sub_ps(ymm1, ymm3); //1 - diffy
-    __m256 ymm6 = _mm256_sub_ps(ymm1, ymm4); //1 - diff_x
-    // ymm0 ymm1 ymm2 ymm3 ymm4 ymm5 ymm6 are occupied
+    __m256 ymm4 = _mm256_add_ps(ymm2, ymm1); //floor_y + 1
+    __m256 ymm5 = _mm256_sub_ps(ymm1, ymm3); //1 - diff_y
 
-    __m256 ymm7 = _mm256_mul_ps(ymm6, ymm5); //(1 - diff_x) * (1 - diffy)
-    __m256 ymm8 = _mm256_mul_ps(ymm4, ymm5); //diff_x * (1 - diffy)
-    // ymm0 ymm1 ymm2 ymm3 ymm4 ymm6 ymm7 ymm8 are occupied
+    for (int cur_row = 0; cur_row != 8; ++cur_row) {
+        float x = cur_row * height_division;
+        int floor_x = floor(x);
+        int floor_x_idx = floor_x * ori_w;
 
-    __m256 ymm9 = _mm256_mul_ps(ymm6, ymm3); // (1 - diff_x) * diffy
-    __m256 ymm10 = _mm256_mul_ps(ymm4, ymm3); // diff_x * diffy
-    // ymm0 ymm1 ymm2 ymm7 ymm8 ymm9 ymm10 are occupied
+        int floor_x_plus1 = floor_x + 1;
+        int floor_x_plus1_idx = floor_x_plus1 * ori_w;
 
-    // _mm256_set1_ei32
-    ymm3 = _mm256_set1_ps(floor_x_idx); //floor_x
-    ymm4 = _mm256_set1_ps(floor_x_plus1_idx); //floor_x + 1
-    ymm5 = _mm256_add_ps(ymm2, ymm1); //floory + 1
-    // ymm0 ymm1 ymm2 ymm3 ymm4 ymm5 ymm7 ymm8 ymm9 ymm10 are occupied
+        float diff_x = x = floor_x;
 
-    // [floor_x, floor_y]
-    __m256 ymm11 = _mm256_add_ps(ymm3, ymm2);
-    // [floor_x + 1, floor_y]
-    __m256 ymm12 = _mm256_add_ps(ymm4, ymm2);
-    // [floor_x, floor_y + 1]
-    __m256 ymm13 = _mm256_add_ps(ymm3, ymm5);
-    // [floor_x + 1, floor_y + 1]
-    __m256 ymm14 = _mm256_add_ps(ymm4, ymm5);
-    // ymm0 ymm7 ymm8 ymm9 ymm10 ymm11 ymm12 ymm13 ymm14 are occupied
+        __m256 ymm6 = _mm256_set1_ps(diff_x); //diff_x
 
-    // now we got all the indices of the needed original elements
-    // TODO: int and float types are not consistent due to floor
-    ymm1 = _mm256_set_epi8(from[ymm11[0]], from[ymm11[1]], from[ymm11[2]], from[ymm11[3]],
-                         from[(int)ymm11[4]], from[ymm11[5]], from[ymm11[6]], from[ymm11[7]]);
-    ymm2 = _mm256_set_ps(from[ymm12[0]], from[ymm12[1]], from[ymm12[2]], from[ymm12[3]],
-                         from[ymm12[4]], from[ymm12[5]], from[ymm12[6]], from[ymm12[7]]);
-    ymm3 = _mm256_set_ps(from[ymm13[0]], from[ymm13[1]], from[ymm13[2]], from[ymm13[3]],
-                         from[ymm13[4]], from[ymm13[5]], from[ymm13[6]], from[ymm13[7]]);
-    ymm4 = _mm256_set_ps(from[ymm14[0]], from[ymm14[1]], from[ymm14[2]], from[ymm14[3]],
-                         from[ymm14[4]], from[ymm14[5]], from[ymm14[6]], from[ymm14[7]]);
+        ymm1 = _mm256_set1_ps(1);
 
-    _mm256_fmadd_ps(ymm1, ymm7, ymm1);
-    _mm256_fmadd_ps(ymm1, ymm8, ymm1);
-    _mm256_fmadd_ps(ymm1, ymm9, ymm1);
-    _mm256_fmadd_ps(ymm1, ymm10, ymm1);
+        __m256 ymm7 = _mm256_sub_ps(ymm1, ymm6); //1 - diff_x
 
-    _mm256_fmadd_ps(ymm2, ymm7, ymm2);
-    _mm256_fmadd_ps(ymm2, ymm8, ymm2);
-    _mm256_fmadd_ps(ymm2, ymm9, ymm2);
-    _mm256_fmadd_ps(ymm2, ymm10, ymm2);
+        __m256 ymm8 = _mm256_mul_ps(ymm7, ymm5); //(1 - diff_x) * (1 - diffy)
+        __m256 ymm9 = _mm256_mul_ps(ymm6, ymm5); //diff_x * (1 - diffy)
 
-    _mm256_fmadd_ps(ymm3, ymm7, ymm3);
-    _mm256_fmadd_ps(ymm3, ymm8, ymm3);
-    _mm256_fmadd_ps(ymm3, ymm9, ymm3);
-    _mm256_fmadd_ps(ymm3, ymm10, ymm3);
+        __m256 ymm10 = _mm256_mul_ps(ymm7, ymm3); // (1 - diff_x) * diffy
+        __m256 ymm11 = _mm256_mul_ps(ymm6, ymm3); // diff_x * diffy
 
-    _mm256_fmadd_ps(ymm4, ymm7, ymm4);
-    _mm256_fmadd_ps(ymm4, ymm8, ymm4);
-    _mm256_fmadd_ps(ymm4, ymm9, ymm4);
-    _mm256_fmadd_ps(ymm4, ymm10, ymm4);
+        ymm6 = _mm256_set1_ps(floor_x_idx); //floor_x
+        ymm7 = _mm256_set1_ps(floor_x_plus1_idx); //floor_x + 1
 
-    // TODO
-    // _mm256_store_ps(to[], ymm7);
-    // _mm256_store_ps(to[], ymm7);
-    // _mm256_store_ps(to[], ymm7);
-    // _mm256_store_ps(to[], ymm7);
+        // [floor_x, floor_y]
+        __m256 ymm12 = _mm256_add_ps(ymm6, ymm2);
+        // [floor_x + 1, floor_y]
+        __m256 ymm13 = _mm256_add_ps(ymm7, ymm2);
+        // [floor_x, floor_y + 1]
+        __m256 ymm14 = _mm256_add_ps(ymm6, ymm4);
+        // [floor_x + 1, floor_y + 1]
+        __m256 ymm15 = _mm256_add_ps(ymm7, ymm4);
 
+        // now we got all the indices of the needed original elements
+        // int and float types are not consistent due to floor
+        ymm12 = _mm256_set_ps(from[(int)ymm12[7]], from[(int)ymm12[6]], from[(int)ymm12[5]], from[(int)ymm12[4]],
+                            from[(int)ymm12[3]], from[(int)ymm12[2]], from[(int)ymm12[1]], from[(int)ymm12[0]]);
+        ymm13 = _mm256_set_ps(from[(int)ymm13[7]], from[(int)ymm13[6]], from[(int)ymm13[5]], from[(int)ymm13[4]],
+                            from[(int)ymm13[3]], from[(int)ymm13[2]], from[(int)ymm13[1]], from[(int)ymm13[0]]);
+        ymm14 = _mm256_set_ps(from[(int)ymm14[7]], from[(int)ymm14[6]], from[(int)ymm14[5]], from[(int)ymm14[4]],
+                            from[(int)ymm14[3]], from[(int)ymm14[2]], from[(int)ymm14[1]], from[(int)ymm14[0]]);
+        ymm15 = _mm256_set_ps(from[(int)ymm15[7]], from[(int)ymm15[6]], from[(int)ymm15[5]], from[(int)ymm15[4]],
+                             from[(int)ymm15[3]], from[(int)ymm15[2]], from[(int)ymm15[1]], from[(int)ymm15[0]]);
+#if 0
+        printf("[floor_x, floor_y]\n");
+        print256_num(ymm12);
+        printf("[floor_x + 1, floor_y]\n");
+        print256_num(ymm13);
+        printf("[floor_x, floor_y + 1]\n");
+        print256_num(ymm14);
+        printf("[floor_x + 1, floor_y + 1]\n");
+        print256_num(ymm15);
+#endif
+        ymm0 = _mm256_setzero_ps();
+        ymm0 = _mm256_fmadd_ps(ymm12, ymm8, ymm0);
+        ymm0 = _mm256_fmadd_ps(ymm13, ymm9, ymm0);
+        ymm0 = _mm256_fmadd_ps(ymm14, ymm10, ymm0);
+        ymm0 = _mm256_fmadd_ps(ymm15, ymm11, ymm0);
+
+        // printf("result \n");
+        // print256_num(ymm0);
+        _mm256_store_ps(&to[cur_row*new_w], ymm0);
+    }
 }
