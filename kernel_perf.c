@@ -118,7 +118,7 @@ int main(){
     }
 
     printf("average cycles: %llu\n", acc/100000);
-    printf("%d\t %d\t %lf\n", ori_h, ori_w, (100000.0*new_h*new_w)/((double)(acc)*MAX_FREQ/BASE_FREQ));
+    printf("%d\t %d\t %lf\n", ori_h, ori_w, (100000.0*new_h*new_w*4*2)/((double)(acc)*MAX_FREQ/BASE_FREQ));
 
     free(from);
     free(to);
