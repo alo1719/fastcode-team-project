@@ -21,54 +21,6 @@ void print256i_num(__m256i var)
            val[4], val[5], val[6], val[7]);
 }
 
-// //the default parameters are used for testing
-// int bilinear_kernel(__m256 mdiffx_mdiffy, __m256 diffx_mdiffy,
-//                     __m256 mdiffx_diffy, __m256 diffx_diffy,
-//                     __m256 floorx_floory, __m256 floorxp_floory,
-//                     __m256 floorx_flooryp, __m256 floorxp_floory,
-//                      int *from, float *to) {
-//         // // now we got all the indices of the needed original elements
-//         // // int and float types are not consistent due to floor
-//         // // Question: is there a better way to load nonconsecutive elements?
-//         ymm12 = _mm256_set_ps(from[(int)ymm12[7]], from[(int)ymm12[6]], from[(int)ymm12[5]], from[(int)ymm12[4]],
-//                             from[(int)ymm12[3]], from[(int)ymm12[2]], from[(int)ymm12[1]], from[(int)ymm12[0]]);
-//         ymm13 = _mm256_set_ps(from[(int)ymm13[7]], from[(int)ymm13[6]], from[(int)ymm13[5]], from[(int)ymm13[4]],
-//                             from[(int)ymm13[3]], from[(int)ymm13[2]], from[(int)ymm13[1]], from[(int)ymm13[0]]);
-//         ymm14 = _mm256_set_ps(from[(int)ymm14[7]], from[(int)ymm14[6]], from[(int)ymm14[5]], from[(int)ymm14[4]],
-//                             from[(int)ymm14[3]], from[(int)ymm14[2]], from[(int)ymm14[1]], from[(int)ymm14[0]]);
-//         ymm15 = _mm256_set_ps(from[(int)ymm15[7]], from[(int)ymm15[6]], from[(int)ymm15[5]], from[(int)ymm15[4]],
-//                              from[(int)ymm15[3]], from[(int)ymm15[2]], from[(int)ymm15[1]], from[(int)ymm15[0]]);
-
-// #if 0
-//         printf("(1 - diff_x) * (1 - diffy)\n");
-//         print256_num(ymm8);
-//         printf("diff_x * (1 - diffy)\n");
-//         print256_num(ymm9);
-//         printf("(1 - diff_x) * diffy\n");
-//         print256_num(ymm10);
-//         printf("diff_x * diffy\n");
-//         print256_num(ymm11);
-//         printf("[floor_x, floor_y]\n");
-//         print256_num(ymm12);
-//         printf("[floor_x + 1, floor_y]\n");
-//         print256_num(ymm13);
-//         printf("[floor_x, floor_y + 1]\n");
-//         print256_num(ymm14);
-//         printf("[floor_x + 1, floor_y + 1]\n");
-//         print256_num(ymm15);
-// #endif
-//         ymm0 = _mm256_setzero_ps();
-//         ymm0 = _mm256_fmadd_ps(ymm12, ymm8, ymm0);
-//         ymm0 = _mm256_fmadd_ps(ymm13, ymm9, ymm0);
-//         ymm0 = _mm256_fmadd_ps(ymm14, ymm10, ymm0);
-//         ymm0 = _mm256_fmadd_ps(ymm15, ymm11, ymm0);
-
-//         // printf("result ==========================================\n");
-//         // print256_num(ymm0);
-//         _mm256_store_ps(&to[cur_row*new_w], ymm0);
-// }
-
-
 void bilinear_kernel_upscale(__m256 m_diff, __m256 diff, __m256 x,
                         __m256 row_idx, __m256 row_idx_plus1,
                         float *from, float *to, int new_w, int ori_h,
