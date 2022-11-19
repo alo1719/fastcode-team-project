@@ -21,110 +21,224 @@ void print256i_num(__m256i var)
            val[4], val[5], val[6], val[7]);
 }
 
-void bilinear_kernel_upscale(__m256 m_diff, __m256 diff, __m256 x,
-                        __m256 row_idx, __m256 row_idx_plus1,
-                        float *from, float *to, int new_w, int ori_h,
-                        __m256i mask_floory, __m256i mask_flooryp) {
-    // 7 simd register taken, 9 left
-    float row_indices [8];
-    memcpy(row_indices, &row_idx, sizeof(row_indices));
-    float row_indices_plus1 [8];
-    memcpy(row_indices_plus1, &row_idx_plus1, sizeof(row_indices_plus1));
-    float x_array [8];
-    memcpy(x_array, &x, sizeof(x_array));
-    // printf("x\n");
-    // print256_num(x);
-    // for (int i = 0; i != 8; i++) {
-    //         printf("%f\n", x_array[i]);
-    // }
+void bilinear_kernel_upscale(
+                        int *row_indices, int *row_indices_plus1,
+                        float *from, float *to, int new_w,
+                        __m256i mask_floory, __m256i mask_flooryp, float *parameters) {
+//     for (int row = 1; row != 7; row ++) {
 
-    // print256_num(row_idx);
-    // print256_num(row_idx_plus1);
-    // print256i_num(mask_floory);
-    // print256i_num(mask_flooryp);
+//         __m256 ymm2 = _mm256_load_ps(&(from[row_indices[row]]));
+//         __m256 ymm3 = _mm256_load_ps(&(from[row_indices_plus1[row]]));
+//         __m256 ymm4 = _mm256_load_ps(&(from[row_indices[row]]));
+//         __m256 ymm5 = _mm256_load_ps(&(from[row_indices_plus1[row]]));
 
-    for (int row = 1; row != 7; row ++) {
-        int floor_x_idx = row_indices[row];
-        int floor_x_idx_plus1 = row_indices_plus1[row];
-        float x_idx = x_array[row];
-        // printf("x_array[row] %f\n", x_idx);
+// #if 0
+//         printf("[floor_x, floor_y]\n");
+//         print256_num(ymm2);
+//         printf("[floor_x + 1, floor_y]\n");
+//         print256_num(ymm3);
+//         printf("[floor_x, floor_y + 1]\n");
+//         print256_num(ymm4);
+//         printf("[floor_x + 1, floor_y + 1]\n");
+//         print256_num(ymm5);
+// #endif
 
-        __m256 ymm0 = _mm256_set1_ps(x_idx);
-        // printf("x[row]\n");
-        // print256_num(ymm0);
-        __m256 ymm1 = _mm256_floor_ps(ymm0);
-        ymm0 = _mm256_sub_ps(ymm0, ymm1); // diff_x
-        // printf("diff_x\n");
-        // print256_num(ymm0);
-        ymm1 = _mm256_set1_ps(1);
-        ymm1 = _mm256_sub_ps(ymm1, ymm0); // 1 - diff_x
-        // printf("1 - diff_x\n");
-        // print256_num(ymm1);
-        __m256 ymm6 = _mm256_mul_ps(ymm1, m_diff); // (1 - diff_x) * (1 - diff_y)
-        __m256 ymm7 = _mm256_mul_ps(ymm0, m_diff); // diff_x * (1 - diff_y)
-        __m256 ymm8 = _mm256_mul_ps(ymm1, diff); // (1 - diff_x) * diff_y
-        ymm1 = _mm256_mul_ps(ymm0, diff); // diff_x * diff_y
-#if 0
-        printf("(1 - diff_x) * (1 - diff_y)\n");
-        print256_num(ymm6);
-        printf("diff_x * (1 - diff_y)\n");
-        print256_num(ymm7);
-        printf("(1 - diff_x) * diff_y\n");
-        print256_num(ymm8);
-        printf("diff_x * diff_y\n");
-        print256_num(ymm1);
-#endif
-        __m256 ymm2 = _mm256_load_ps(&(from[floor_x_idx]));
-        __m256 ymm3 = _mm256_load_ps(&(from[floor_x_idx_plus1]));
-        __m256 ymm4 = _mm256_load_ps(&(from[floor_x_idx]));
-        __m256 ymm5 = _mm256_load_ps(&(from[floor_x_idx_plus1]));
+//         ymm2 = _mm256_permutevar8x32_ps(ymm2, mask_floory);
+//         ymm3 = _mm256_permutevar8x32_ps(ymm3, mask_floory);
+//         ymm4 = _mm256_permutevar8x32_ps(ymm4, mask_flooryp);
+//         ymm5 = _mm256_permutevar8x32_ps(ymm5, mask_flooryp);
 
+//         int row_offset = row*4*8;
+//         __m256 ymm6 = _mm256_load_ps(parameters+row_offset);
+//         __m256 ymm7 = _mm256_load_ps(parameters+row_offset+8);
+//         __m256 ymm8 = _mm256_load_ps(parameters+row_offset+16);
+//         __m256 ymm9 = _mm256_load_ps(parameters+row_offset+24);
+// #if 0
+//         printf("permute     [floor_x, floor_y]\n");
+//         print256_num(ymm2);
+//         printf("(1 - diff_x) * (1 - diff_y)\n");
+//         print256_num(ymm6);
+//         printf("permute     [floor_x + 1, floor_y]\n");
+//         print256_num(ymm3);
+//         printf("diff_x * (1 - diff_y) and (1 - diff_x) * diff_y\n");
+//         print256_num(ymm7);
+//         printf("permute     [floor_x, floor_y + 1]\n");
+//         print256_num(ymm4);
+//         printf("diff_x * (1 - diff_y) and (1 - diff_x) * diff_y\n");
+//         print256_num(ymm8);
+//         printf("permute     [floor_x + 1, floor_y + 1]\n");
+//         print256_num(ymm5);
+//         printf("diff_x * diff_y\n");
+//         print256_num(ymm9);
+// #endif
 
-#if 0
-        printf("[floor_x, floor_y]\n");
-        print256_num(ymm2);
-        printf("[floor_x + 1, floor_y]\n");
-        print256_num(ymm3);
-        printf("[floor_x, floor_y + 1]\n");
-        print256_num(ymm4);
-        printf("[floor_x + 1, floor_y + 1]\n");
-        print256_num(ymm5);
-#endif
+//         __m256 ymm0 = _mm256_setzero_ps();
+//         ymm0 = _mm256_fmadd_ps(ymm2, ymm6, ymm0);
+//         ymm0 = _mm256_fmadd_ps(ymm3, ymm7, ymm0);
+//         ymm0 = _mm256_fmadd_ps(ymm4, ymm8, ymm0);
+//         ymm0 = _mm256_fmadd_ps(ymm5, ymm9, ymm0);
+
+//         // printf("result ==========================================\n");
+//         // print256_num(ymm0);
+//         _mm256_store_ps(&to[row*new_w], ymm0);
+//     }
+
+        __m256 ymm2 = _mm256_load_ps(&(from[row_indices[1]]));
+        __m256 ymm3 = _mm256_load_ps(&(from[row_indices_plus1[1]]));
+        __m256 ymm4 = _mm256_load_ps(&(from[row_indices[1]]));
+        __m256 ymm5 = _mm256_load_ps(&(from[row_indices_plus1[1]]));
 
         ymm2 = _mm256_permutevar8x32_ps(ymm2, mask_floory);
         ymm3 = _mm256_permutevar8x32_ps(ymm3, mask_floory);
         ymm4 = _mm256_permutevar8x32_ps(ymm4, mask_flooryp);
         ymm5 = _mm256_permutevar8x32_ps(ymm5, mask_flooryp);
 
-#if 0
-        printf("permute     [floor_x, floor_y]\n");
-        print256_num(ymm2);
-        printf("(1 - diff_x) * (1 - diff_y)\n");
-        print256_num(ymm6);
-        printf("permute     [floor_x + 1, floor_y]\n");
-        print256_num(ymm3);
-        printf("diff_x * (1 - diff_y) and (1 - diff_x) * diff_y\n");
-        print256_num(ymm7);
-        printf("permute     [floor_x, floor_y + 1]\n");
-        print256_num(ymm4);
-        printf("diff_x * (1 - diff_y) and (1 - diff_x) * diff_y\n");
-        print256_num(ymm8);
-        printf("permute     [floor_x + 1, floor_y + 1]\n");
-        print256_num(ymm5);
-        printf("diff_x * diff_y\n");
-        print256_num(ymm1);
-#endif
+        int row_offset = 1*4*8;
+        __m256 ymm6 = _mm256_load_ps(parameters+row_offset);
+        __m256 ymm7 = _mm256_load_ps(parameters+row_offset+8);
+        __m256 ymm8 = _mm256_load_ps(parameters+row_offset+16);
+        __m256 ymm9 = _mm256_load_ps(parameters+row_offset+24);
+
+        __m256 ymm0 = _mm256_setzero_ps();
+        ymm0 = _mm256_fmadd_ps(ymm2, ymm6, ymm0);
+        ymm0 = _mm256_fmadd_ps(ymm3, ymm7, ymm0);
+        ymm0 = _mm256_fmadd_ps(ymm4, ymm8, ymm0);
+        ymm0 = _mm256_fmadd_ps(ymm5, ymm9, ymm0);
+
+        // printf("result ==========================================\n");
+        // print256_num(ymm0);
+        _mm256_store_ps(&to[1*new_w], ymm0);
+
+        __m256 ymm12 = _mm256_load_ps(&(from[row_indices[2]]));
+        __m256 ymm13 = _mm256_load_ps(&(from[row_indices_plus1[2]]));
+        __m256 ymm14 = _mm256_load_ps(&(from[row_indices[2]]));
+        __m256 ymm15 = _mm256_load_ps(&(from[row_indices_plus1[2]]));
+
+        ymm12 = _mm256_permutevar8x32_ps(ymm12, mask_floory);
+        ymm13 = _mm256_permutevar8x32_ps(ymm13, mask_floory);
+        ymm14 = _mm256_permutevar8x32_ps(ymm14, mask_flooryp);
+        ymm15 = _mm256_permutevar8x32_ps(ymm15, mask_flooryp);
+
+        int row_offset_2 = 2*4*8;
+        ymm6 = _mm256_load_ps(parameters+row_offset_2);
+        ymm7 = _mm256_load_ps(parameters+row_offset_2+8);
+        ymm8 = _mm256_load_ps(parameters+row_offset_2+16);
+        ymm9 = _mm256_load_ps(parameters+row_offset_2+24);
+
+        __m256 ymm1 = _mm256_setzero_ps();
+        ymm1 = _mm256_fmadd_ps(ymm12, ymm6, ymm1);
+        ymm1 = _mm256_fmadd_ps(ymm13, ymm7, ymm1);
+        ymm1 = _mm256_fmadd_ps(ymm14, ymm8, ymm1);
+        ymm1 = _mm256_fmadd_ps(ymm15, ymm9, ymm1);
+
+        // printf("result ==========================================\n");
+        // print256_num(ymm0);
+        _mm256_store_ps(&to[2*new_w], ymm1);
+
+        ymm2 = _mm256_load_ps(&(from[row_indices[3]]));
+        ymm3 = _mm256_load_ps(&(from[row_indices_plus1[3]]));
+        ymm4 = _mm256_load_ps(&(from[row_indices[3]]));
+        ymm5 = _mm256_load_ps(&(from[row_indices_plus1[3]]));
+
+        ymm2 = _mm256_permutevar8x32_ps(ymm2, mask_floory);
+        ymm3 = _mm256_permutevar8x32_ps(ymm3, mask_floory);
+        ymm4 = _mm256_permutevar8x32_ps(ymm4, mask_flooryp);
+        ymm5 = _mm256_permutevar8x32_ps(ymm5, mask_flooryp);
+
+        int row_offset_3 = 3*4*8;
+        ymm6 = _mm256_load_ps(parameters+row_offset_3);
+        ymm7 = _mm256_load_ps(parameters+row_offset_3+8);
+        ymm8 = _mm256_load_ps(parameters+row_offset_3+16);
+        ymm9 = _mm256_load_ps(parameters+row_offset_3+24);
+
+        __m256 ymm10 = _mm256_setzero_ps();
+        ymm10 = _mm256_fmadd_ps(ymm2, ymm6, ymm10);
+        ymm10 = _mm256_fmadd_ps(ymm3, ymm7, ymm10);
+        ymm10 = _mm256_fmadd_ps(ymm4, ymm8, ymm10);
+        ymm10 = _mm256_fmadd_ps(ymm5, ymm9, ymm10);
+
+        // printf("result ==========================================\n");
+        // print256_num(ymm0);
+        _mm256_store_ps(&to[3*new_w], ymm0);
+
+        ymm12 = _mm256_load_ps(&(from[row_indices[4]]));
+        ymm13 = _mm256_load_ps(&(from[row_indices_plus1[4]]));
+        ymm14 = _mm256_load_ps(&(from[row_indices[4]]));
+        ymm15 = _mm256_load_ps(&(from[row_indices_plus1[4]]));
+
+        ymm12 = _mm256_permutevar8x32_ps(ymm12, mask_floory);
+        ymm13 = _mm256_permutevar8x32_ps(ymm13, mask_floory);
+        ymm14 = _mm256_permutevar8x32_ps(ymm14, mask_flooryp);
+        ymm15 = _mm256_permutevar8x32_ps(ymm15, mask_flooryp);
+
+        int row_offset_4 = 4*4*8;
+        ymm6 = _mm256_load_ps(parameters+row_offset_4);
+        ymm7 = _mm256_load_ps(parameters+row_offset_4+8);
+        ymm8 = _mm256_load_ps(parameters+row_offset_4+16);
+        ymm9 = _mm256_load_ps(parameters+row_offset_4+24);
+
+        __m256 ymm11 = _mm256_setzero_ps();
+        ymm11 = _mm256_fmadd_ps(ymm12, ymm6, ymm11);
+        ymm11 = _mm256_fmadd_ps(ymm13, ymm7, ymm11);
+        ymm11 = _mm256_fmadd_ps(ymm14, ymm8, ymm11);
+        ymm11 = _mm256_fmadd_ps(ymm15, ymm9, ymm11);
+
+        // printf("result ==========================================\n");
+        // print256_num(ymm0);
+        _mm256_store_ps(&to[4*new_w], ymm11);
+
+
+        ymm2 = _mm256_load_ps(&(from[row_indices[5]]));
+        ymm3 = _mm256_load_ps(&(from[row_indices_plus1[5]]));
+        ymm4 = _mm256_load_ps(&(from[row_indices[5]]));
+        ymm5 = _mm256_load_ps(&(from[row_indices_plus1[5]]));
+
+        ymm2 = _mm256_permutevar8x32_ps(ymm2, mask_floory);
+        ymm3 = _mm256_permutevar8x32_ps(ymm3, mask_floory);
+        ymm4 = _mm256_permutevar8x32_ps(ymm4, mask_flooryp);
+        ymm5 = _mm256_permutevar8x32_ps(ymm5, mask_flooryp);
+
+        int row_offset_5 = 5*4*8;
+        ymm6 = _mm256_load_ps(parameters+row_offset_5);
+        ymm7 = _mm256_load_ps(parameters+row_offset_5+8);
+        ymm8 = _mm256_load_ps(parameters+row_offset_5+16);
+        ymm9 = _mm256_load_ps(parameters+row_offset_5+24);
 
         ymm0 = _mm256_setzero_ps();
         ymm0 = _mm256_fmadd_ps(ymm2, ymm6, ymm0);
         ymm0 = _mm256_fmadd_ps(ymm3, ymm7, ymm0);
         ymm0 = _mm256_fmadd_ps(ymm4, ymm8, ymm0);
-        ymm0 = _mm256_fmadd_ps(ymm5, ymm1, ymm0);
+        ymm0 = _mm256_fmadd_ps(ymm5, ymm9, ymm0);
 
         // printf("result ==========================================\n");
         // print256_num(ymm0);
-        _mm256_store_ps(&to[row*new_w], ymm0);
-    }
+        _mm256_store_ps(&to[5*new_w], ymm0);
+
+        ymm12 = _mm256_load_ps(&(from[row_indices[6]]));
+        ymm13 = _mm256_load_ps(&(from[row_indices_plus1[6]]));
+        ymm14 = _mm256_load_ps(&(from[row_indices[6]]));
+        ymm15 = _mm256_load_ps(&(from[row_indices_plus1[6]]));
+
+        ymm12 = _mm256_permutevar8x32_ps(ymm12, mask_floory);
+        ymm13 = _mm256_permutevar8x32_ps(ymm13, mask_floory);
+        ymm14 = _mm256_permutevar8x32_ps(ymm14, mask_flooryp);
+        ymm15 = _mm256_permutevar8x32_ps(ymm15, mask_flooryp);
+
+        int row_offset_6 = 6*4*8;
+        ymm6 = _mm256_load_ps(parameters+row_offset_6);
+        ymm7 = _mm256_load_ps(parameters+row_offset_6+8);
+        ymm8 = _mm256_load_ps(parameters+row_offset_6+16);
+        ymm9 = _mm256_load_ps(parameters+row_offset_6+24);
+
+        ymm1 = _mm256_setzero_ps();
+        ymm1 = _mm256_fmadd_ps(ymm12, ymm6, ymm1);
+        ymm1 = _mm256_fmadd_ps(ymm13, ymm7, ymm1);
+        ymm1 = _mm256_fmadd_ps(ymm14, ymm8, ymm1);
+        ymm1 = _mm256_fmadd_ps(ymm15, ymm9, ymm1);
+
+        // printf("result ==========================================\n");
+        // print256_num(ymm0);
+        _mm256_store_ps(&to[6*new_w], ymm1);
 }
 
 void bilinear_naive() {
