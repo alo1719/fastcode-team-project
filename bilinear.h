@@ -99,14 +99,32 @@ void bilinear_kernel_upscale(
         __m256 ymm8 = _mm256_load_ps(parameters+row_offset+16);
         __m256 ymm9 = _mm256_load_ps(parameters+row_offset+24);
 
+#if 1
+        printf("permute     [floor_x, floor_y]\n");
+        print256_num(ymm2);
+        printf("(1 - diff_x) * (1 - diff_y)\n");
+        print256_num(ymm6);
+        printf("permute     [floor_x + 1, floor_y]\n");
+        print256_num(ymm3);
+        printf("diff_x * (1 - diff_y) and (1 - diff_x) * diff_y\n");
+        print256_num(ymm7);
+        printf("permute     [floor_x, floor_y + 1]\n");
+        print256_num(ymm4);
+        printf("diff_x * (1 - diff_y) and (1 - diff_x) * diff_y\n");
+        print256_num(ymm8);
+        printf("permute     [floor_x + 1, floor_y + 1]\n");
+        print256_num(ymm5);
+        printf("diff_x * diff_y\n");
+        print256_num(ymm9);
+#endif
         __m256 ymm0 = _mm256_setzero_ps();
         ymm0 = _mm256_fmadd_ps(ymm2, ymm6, ymm0);
         ymm0 = _mm256_fmadd_ps(ymm3, ymm7, ymm0);
         ymm0 = _mm256_fmadd_ps(ymm4, ymm8, ymm0);
         ymm0 = _mm256_fmadd_ps(ymm5, ymm9, ymm0);
 
-        // printf("result ==========================================\n");
-        // print256_num(ymm0);
+        printf("result ==========================================\n");
+        print256_num(ymm0);
         _mm256_store_ps(&to[1*new_w], ymm0);
 
         __m256 ymm12 = _mm256_load_ps(&(from[row_indices[2]]));
@@ -130,9 +148,27 @@ void bilinear_kernel_upscale(
         ymm1 = _mm256_fmadd_ps(ymm13, ymm7, ymm1);
         ymm1 = _mm256_fmadd_ps(ymm14, ymm8, ymm1);
         ymm1 = _mm256_fmadd_ps(ymm15, ymm9, ymm1);
+#if 1
+        printf("permute     [floor_x, floor_y]\n");
+        print256_num(ymm12);
+        printf("(1 - diff_x) * (1 - diff_y)\n");
+        print256_num(ymm6);
+        printf("permute     [floor_x + 1, floor_y]\n");
+        print256_num(ymm13);
+        printf("diff_x * (1 - diff_y) and (1 - diff_x) * diff_y\n");
+        print256_num(ymm7);
+        printf("permute     [floor_x, floor_y + 1]\n");
+        print256_num(ymm14);
+        printf("diff_x * (1 - diff_y) and (1 - diff_x) * diff_y\n");
+        print256_num(ymm8);
+        printf("permute     [floor_x + 1, floor_y + 1]\n");
+        print256_num(ymm15);
+        printf("diff_x * diff_y\n");
+        print256_num(ymm9);
 
-        // printf("result ==========================================\n");
-        // print256_num(ymm0);
+        printf("result ==========================================\n");
+        print256_num(ymm1);
+#endif
         _mm256_store_ps(&to[2*new_w], ymm1);
 
         ymm2 = _mm256_load_ps(&(from[row_indices[3]]));
@@ -184,7 +220,7 @@ void bilinear_kernel_upscale(
         ymm11 = _mm256_fmadd_ps(ymm15, ymm9, ymm11);
 
         // printf("result ==========================================\n");
-        // print256_num(ymm0);
+        // print256_num(ymm11);
         _mm256_store_ps(&to[4*new_w], ymm11);
 
 
@@ -237,8 +273,14 @@ void bilinear_kernel_upscale(
         ymm1 = _mm256_fmadd_ps(ymm15, ymm9, ymm1);
 
         // printf("result ==========================================\n");
-        // print256_num(ymm0);
+        // print256_num(ymm1);
         _mm256_store_ps(&to[6*new_w], ymm1);
+        for (int i = 0; i != 56; i++) {
+                printf("%f\t", to[i]);
+                if (i % 8 == 7) {
+                        printf("\n");
+                }
+        }
 }
 
 void bilinear_naive() {
@@ -254,8 +296,8 @@ void bilinear_naive() {
                         from[i][j] = i*5 + j;
                 }
         }
-        for(int i = 1; i < 8; i++){
-                for (int j = 1; j < 8; j++) {
+        for(int i = 1; i < 7; i++){
+                for (int j = 1; j < 7; j++) {
                         float x = (float)i * divisionH;
 			float y = (float)j * divisionW;
                         printf("%f\n", y);
@@ -267,7 +309,13 @@ void bilinear_naive() {
                                 + from[(int)x + 1][(int)y] * (float)agirlikX * (float)(1 - agirlikY)
                                 + from[(int)x][(int)y + 1] * (float)(1 - agirlikX) * (float)agirlikY
                                 + from[(int)x + 1][(int)y + 1] * (float)agirlikX * (float)agirlikY;
-                        printf("%f\n", to[i][j]);
+                        // printf("%f\t", to[i][j]);
+                }
+                // printf("\n");
+        }
+        for(int i = 0; i < 8; i++){
+                for (int j = 0; j < 8; j++) {
+                        printf("%f\t", to[i][j]);
                 }
                 printf("\n");
         }
