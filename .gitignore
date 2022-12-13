@@ -1,0 +1,8 @@
+# ignore the CMakeFiles directory
+CMakeFiles/
+# ignore the CMakeCache.txt file
+CMakeCache.txt
+# ignore the cmake_install.cmake file
+cmake_install.cmake
+# ignore the Makefile file
+Makefile
