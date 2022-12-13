@@ -21,10 +21,12 @@ int main(){
     int new_w = 8;
     float *from; // m*n
     float *to; // 8*8
-    posix_memalign((void**)&from, 32, ori_h*ori_w*sizeof(int));
+    posix_memalign((void**)&from, 32, 8*8*sizeof(int));
     posix_memalign((void**)&to, 32, 8*8*sizeof(int));
-    for (int i = 0; i < ori_h*ori_w; i++) {
-        from[i] = i;
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            from[i*8 +j] = i*8+j;
+        }
     }
 
     float height_division = (float) ori_h / (float) new_h;
@@ -63,11 +65,12 @@ int main(){
     memcpy(row_indices_float, &row_idx, 8*sizeof(float));
     int *row_indices = calloc(8, sizeof(int));
     for (int i = 0; i != 8; i++) {
-        printf("%f\t", row_indices_float[i]);
+        // printf("%f\t", row_indices_float[i]);
         row_indices[i] = (int) row_indices_float[i];
         printf("%d\t", row_indices[i]);
     }
     printf("\n");
+
     ymm0 = _mm256_set1_ps(ori_w);
     __m256 row_idx_plus1 = _mm256_add_ps(row_idx, ymm0);
     float *row_indices_plus1_float = calloc(8, sizeof(float));
@@ -79,51 +82,38 @@ int main(){
     }
     printf("\n");
 
-    float *parameters = calloc(8*4*8, sizeof(float));
+    float *parameters;
+    posix_memalign((void**)&parameters, 32, 8*4*8*sizeof(float));
     for (int row = 0; row != 8; row ++) {
-        int floor_x_idx = row_indices[row];
-        int floor_x_idx_plus1 = row_indices_plus1[row];
         float x_idx = x_array[row];
         printf("x_array[row] %f\n", x_idx);
 
         __m256 ymm0 = _mm256_set1_ps(x_idx);
-        // printf("x[row]\n");
-        // print256_num(ymm0);
         __m256 ymm1 = _mm256_floor_ps(ymm0);
         ymm0 = _mm256_sub_ps(ymm0, ymm1); // diff_x
-        // printf("diff_x\n");
-        // print256_num(ymm0);
         ymm1 = _mm256_set1_ps(1);
         ymm1 = _mm256_sub_ps(ymm1, ymm0); // 1 - diff_x
-        // printf("1 - diff_x\n");
-        // print256_num(ymm1);
         __m256 ymm6 = _mm256_mul_ps(ymm1, m_diff); // (1 - diff_x) * (1 - diff_y)
-        // int row_offset = row*4*8;
-        // // printf("(1 - diff_x) * (1 - diff_y)\n");
-        // // print256_num(ymm6);
-        // memcpy(parameters+row_offset, &ymm6, 8*sizeof(float));
-        // __m256 ymm7 = _mm256_mul_ps(ymm0, m_diff); // diff_x * (1 - diff_y)
-        // // printf("diff_x * (1 - diff_y)\n");
-        // // print256_num(ymm7);
-        // memcpy(parameters+row_offset+8, &ymm7, 8*sizeof(float));
-        // __m256 ymm8 = _mm256_mul_ps(ymm1, diff); // (1 - diff_x) * diff_y
-        // // printf("(1 - diff_x) * diff_y\n");
-        // // print256_num(ymm8);
-        // memcpy(parameters+row_offset+16, &ymm8, 8*sizeof(float));
-        // __m256 ymm9 = _mm256_mul_ps(ymm0, diff); // diff_x * diff_y
-        // // printf("diff_x * diff_y\n");
-        // // print256_num(ymm9);
-        // memcpy(parameters+row_offset+24, &ymm9, 8*sizeof(float));
+        int row_offset = row*4*8;
+        memcpy(parameters+row_offset, &ymm6, 8*sizeof(float));
+        __m256 ymm7 = _mm256_mul_ps(ymm0, m_diff); // diff_x * (1 - diff_y)
+        memcpy(parameters+row_offset+8, &ymm7, 8*sizeof(float));
+        __m256 ymm8 = _mm256_mul_ps(ymm1, diff); // (1 - diff_x) * diff_y
+        memcpy(parameters+row_offset+16, &ymm8, 8*sizeof(float));
+        __m256 ymm9 = _mm256_mul_ps(ymm0, diff); // diff_x * diff_y
+        memcpy(parameters+row_offset+24, &ymm9, 8*sizeof(float));
     }
-
-    // for(int i = 0; i < 8; i++) {
-    //     for (int j = 0; j < 4; j++) {
-    //         for (int p = 0; p < 8; p++) {
-    //             printf("%f\t", parameters[i+j+p]);
-    //         }
-    //         printf("\n");
-    //     }
-    // }
+#if 0
+    for(int i = 0; i < 8; i++) {
+        for (int j = 0; j < 4; j++) {
+            printf("%d %d \n", i, j);
+            for (int p = 0; p < 8; p++) {
+                printf("%f\t", parameters[i*32+j*8+p]);
+            }
+            printf("\n");
+        }
+    }
+#endif
     // Input index = floor(output index * input length / output length)
 
     // compute the permute mask for upscaling
@@ -179,7 +169,7 @@ int main(){
     // for (int i = 0; i < 100000; i++) {
         unsigned long long start = rdtsc();
         bilinear_kernel_upscale(
-                        row_indices, row_indices_plus1,
+                         row_indices, row_indices_plus1,
                          from, to, new_w,
                          mask_floory,  mask_flooryp, parameters);
         unsigned long long end = rdtsc();
