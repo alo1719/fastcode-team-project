@@ -16,67 +16,40 @@ static __inline__ unsigned long long rdtsc(void) {
 
 void bilinear_driver(int ori_h, int ori_w, int new_h, int new_w, float *from, float *to,
         int *row_indices, int *row_indices_plus1, float *parameters){
-    printf("ori_h %d ori_w %d new_h %d new_w %d\n", ori_h, ori_w, new_h, new_w);
 
     float height_division = (float) ori_h / (float) new_h;
     float width_division = (float) ori_w / (float) new_w;
 
     __m256 ymm0 = _mm256_set1_ps(width_division);
-    // printf("width_division\n");
-    // print256_num(ymm0);
-    printf("%d \n", __LINE__);
 
     __m256 ymm1 = _mm256_set_ps(7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0);
     __m256 x = _mm256_mul_ps(ymm1, ymm0); //y
     float *x_array = (float *) calloc(8, sizeof(float));
     memcpy(x_array, &x, 8*sizeof(float));
-    // for (int i = 0; i < 8; i++){
-    //     printf("%f\t", x_array[i]);
-    // }
-    // printf("\n");
-    // printf("x\n");
-    // print256_num(x);
+
     __m256 floor = _mm256_floor_ps(x); //floor_y
-    // printf("floor_y\n");
-    // print256_num(floor);
     __m256 diff = _mm256_sub_ps(x, floor); //diff_y
-    // printf("diff_y\n");
-    // print256_num(diff);
     ymm1 = _mm256_set1_ps(1);
     __m256 m_diff = _mm256_sub_ps(ymm1, diff); //1 - diff_y
-    // printf("m_diff\n");
-    // print256_num(m_diff);
 
     ymm0 = _mm256_set1_ps(ori_w);
     __m256 row_idx = _mm256_mul_ps(floor, ymm0);
-    // printf("row_idx\n");
-    // print256_num(row_idx);
     float *row_indices_float = (float *) calloc(8, sizeof(float));
     memcpy(row_indices_float, &row_idx, 8*sizeof(float));
-    // int *row_indices = (int *) calloc(8, sizeof(int));
     for (int i = 0; i != 8; i++) {
-        // printf("%f\t", row_indices_float[i]);
         row_indices[i] = (int) row_indices_float[i];
-        // printf("%d\t", row_indices[i]);
     }
-    // printf("\n");
 
     ymm0 = _mm256_set1_ps(ori_w);
     __m256 row_idx_plus1 = _mm256_add_ps(row_idx, ymm0);
     float *row_indices_plus1_float = (float *) calloc(8, sizeof(float));
     memcpy(row_indices_plus1_float, &row_idx_plus1, 8*sizeof(float));
-    // int *row_indices_plus1 = (int *) calloc(8, sizeof(int));
     for (int i = 0; i != 8; i++) {
         row_indices_plus1[i] = (int) row_indices_plus1_float[i];
-        // printf("%d\t", row_indices_plus1[i]);
     }
-    // printf("\n");
 
-    // float *parameters;
-    // posix_memalign((void**)&parameters, 32, 8*4*8*sizeof(float));
     for (int row = 0; row != 8; row ++) {
         float x_idx = x_array[row];
-        // printf("x_array[row] %f\n", x_idx);
 
         __m256 ymm0 = _mm256_set1_ps(x_idx);
         __m256 ymm1 = _mm256_floor_ps(ymm0);

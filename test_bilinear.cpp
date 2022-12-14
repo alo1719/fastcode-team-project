@@ -52,12 +52,9 @@ void eachColor(int image_rows, int image_cols, int input_row, int input_col, flo
     int des = 0;
     // #pragma omp parallel for
     int *row_indices = (int *) calloc(8, sizeof(int));
-    printf("%d \n", __LINE__);
     int *row_indices_plus1 = (int *) calloc(8, sizeof(int));
-    printf("%d \n", __LINE__);
     float *parameters;
     posix_memalign((void**)&parameters, 32, 8*4*8*sizeof(float));
-    printf("%d \n", __LINE__);
 
     bilinear_driver(input_row, input_col, kernel_m, kernel_n, from, to,
             row_indices, row_indices_plus1, parameters);
@@ -69,37 +66,37 @@ void eachColor(int image_rows, int image_cols, int input_row, int input_col, flo
     switch(input_row) {
     case 1:
         mask_floory = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
-        mask_flooryp = _mm256_set_epi32(1, 1, 1, 1, 1, 1, 1, 1);
+        mask_flooryp = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
         break;
     case 2:
         mask_floory = _mm256_set_epi32(1, 1, 1, 1, 0, 0, 0, 0);
-        mask_flooryp = _mm256_set_epi32(2, 2, 2, 2, 1, 1, 1, 1);
+        mask_flooryp = _mm256_set_epi32(1, 1, 1, 1, 1, 1, 1, 1);
         break;
     case 3:
         mask_floory = _mm256_set_epi32(2, 2, 1, 1, 1, 0, 0, 0);
-        mask_flooryp = _mm256_set_epi32(3, 3, 2, 2, 2, 1, 1, 1);
+        mask_flooryp = _mm256_set_epi32(2, 2, 2, 2, 2, 1, 1, 1);
         break;
     case 4:
         mask_floory = _mm256_set_epi32(3, 3, 2, 2, 1, 1, 0, 0);
-        mask_flooryp = _mm256_set_epi32(4, 4, 3, 3, 2, 2, 1, 1);
+        mask_flooryp = _mm256_set_epi32(3, 3, 3, 3, 2, 2, 1, 1);
         break;
     case 5:
         mask_floory = _mm256_set_epi32(4, 3, 3, 2, 1, 1, 0, 0);
-        mask_flooryp = _mm256_set_epi32(5, 4, 4, 3, 2, 2, 1, 1);
+        mask_flooryp = _mm256_set_epi32(4, 4, 4, 3, 2, 2, 1, 1);
         break;
     case 6:
         mask_floory = _mm256_set_epi32(5, 4, 3, 3, 2, 1, 0, 0);
-        mask_flooryp = _mm256_set_epi32(6, 5, 4, 4, 3, 2, 1, 1);
+        mask_flooryp = _mm256_set_epi32(5, 5, 4, 4, 3, 2, 1, 1);
         break;
     case 7:
         mask_floory = _mm256_set_epi32(6, 5, 4, 3, 2, 1, 0, 0);
-        mask_flooryp = _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 1);
+        mask_flooryp = _mm256_set_epi32(6, 6, 5, 4, 3, 2, 1, 1);
         break;
     default:
         break;
     }
-    print256i_num(mask_floory);
-    print256i_num(mask_flooryp);
+    // print256i_num(mask_floory);
+    // print256i_num(mask_flooryp);
 
     for(int i=1; i<image_rows+1; i+=input_row){
         for(int j=1; j<image_cols+1; j+=input_col){
@@ -111,17 +108,14 @@ void eachColor(int image_rows, int image_cols, int input_row, int input_col, flo
                     index++;
                 }
             }
-            printf("defore bilinear_kernel_upscale %d \n", __LINE__);
             bilinear_kernel_upscale(row_indices, row_indices_plus1,
-                        from, to, image_cols,
+                        from, to, kernel_n,
                         mask_floory,  mask_flooryp, parameters);
             // unpack the output matrix
             for(int n=0; n<kernel_m*kernel_n; ++n){
                 colorDes[des] = (unsigned char)(int)(to[n]);
-                // printf("colorDes[des] %f\t", colorDes[des]);
                 des++;
             }
-            // printf("\n");
         }
     }
 }
@@ -133,7 +127,7 @@ int main(int argc, char** argv)
     int des_n = atoi(argv[2]);
 
     Mat image;
-    image = imread("./bili.jpg", 1);
+    image = imread("./Wechat.jpeg", 1);
     if (!image.data)
     {
         printf("No image data \n");
@@ -205,17 +199,6 @@ int main(int argc, char** argv)
     post_processing(outG, desG, des_m, des_n, kernel_m, kernel_n);
     post_processing(outR, desR, des_m, des_n, kernel_m, kernel_n);
 
-    // verify(B, image_rows, image_cols);
-
-    // printf("\n");
-
-    
-    // verify(desB, des_m, des_n);
-
-    // printf("\n");
-
-    // verify(outB, des_m, des_n);
-
     idx = 0;
 
     Mat output_image(des_m, des_n, CV_8UC3);
@@ -229,20 +212,12 @@ int main(int argc, char** argv)
             data_ptr[0] = outB[idx];
             data_ptr[1] = outG[idx];
             data_ptr[2] = outR[idx];
-            
             idx++;
         }
     }
 
     imwrite("./output.jpeg", output_image);
 
-    cout<<int(outB[0])<<" "<<int(outG[0])<<" "<<int(outR[0])<<endl;
-
-    // verify(desB, des_m, des_n);// NN packed output
-
-    // printf("\n");
-
-    // verify(outB, des_m, des_n);// acutal output
 
     delete desB;
     delete desG;
