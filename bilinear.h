@@ -38,7 +38,10 @@ void bilinear_kernel_upscale(
                         int *row_indices, int *row_indices_plus1,
                         float *from, float *to, int new_w,
                         __m256i mask_floory, __m256i mask_flooryp, float *parameters) {
-        
+        // __m256i mask_floory = *mask_floory_p;
+        // __m256i mask_flooryp = *mask_flooryp_p;
+        printf("bilinear_kernel_upscale start %d \n", __LINE__);
+
         __m256 ymm2 = _mm256_loadu_ps(&(from[row_indices[0]]));
         __m256 ymm3 = _mm256_loadu_ps(from+row_indices_plus1[0]);
         __m256 ymm4 = _mm256_loadu_ps(&(from[row_indices[0]]));
@@ -60,9 +63,8 @@ void bilinear_kernel_upscale(
         ymm1 = _mm256_fmadd_ps(ymm3, ymm7, ymm1);
         ymm1 = _mm256_fmadd_ps(ymm4, ymm8, ymm1);
         ymm1 = _mm256_fmadd_ps(ymm5, ymm9, ymm1);
-        printf("%d row_indices[1] %d\n", __LINE__, *(row_indices+1));
-        print256_num(ymm1);
-        // ymm1 = _mm256_floor_ps(ymm1);
+        // printf("%d row_indices[1] %d\n", __LINE__, *(row_indices+1));
+        // print256_num(ymm1);
         _mm256_store_ps(&to[0*new_w], ymm1);
 
         ymm2 = _mm256_load_ps(&(from[row_indices[1]]));
@@ -105,8 +107,8 @@ void bilinear_kernel_upscale(
         ymm0 = _mm256_fmadd_ps(ymm4, ymm8, ymm0);
         ymm0 = _mm256_fmadd_ps(ymm5, ymm9, ymm0);
 
-        printf("result ==========================================\n");
-        print256_num(ymm0);
+        // printf("result ==========================================\n");
+        // print256_num(ymm0);
         _mm256_store_ps(&to[1*new_w], ymm0);
 
         __m256 ymm12 = _mm256_loadu_ps(from+row_indices[2]);
@@ -132,8 +134,6 @@ void bilinear_kernel_upscale(
         ymm1 = _mm256_fmadd_ps(ymm15, ymm9, ymm1);
 
         _mm256_store_ps(&to[2*new_w], ymm1);
-
-        printf("diff_x * diff_y\n");
 
         ymm2 = _mm256_loadu_ps(from+row_indices[3]);
         ymm3 = _mm256_loadu_ps(from+row_indices_plus1[3]);
