@@ -19,7 +19,7 @@ static __inline__ unsigned long long rdtsc(void) {
 using namespace cv;
 using namespace std;
 
-void kernel8x16(float* to_address, __m256 col_diff1, __m256 col_diff2, __m256 row_diff) {
+void NNKernel8x16(float* to_address, __m256 col_diff1, __m256 col_diff2, __m256 row_diff) {
     //1
     __m256 ymm0 = _mm256_broadcast_ss(&row_diff[0]);// latency 5, throuput 0.5, port23
     __m256 ymm1 = _mm256_broadcast_ss(&row_diff[0]);
@@ -94,24 +94,6 @@ void kernel8x16(float* to_address, __m256 col_diff1, __m256 col_diff2, __m256 ro
     _mm256_store_ps(to_address+16*7+8, ymm15);
 }
 
-void pre_processing(int *source, int *dest, int row, int col){
-    int des = 0;
-    int k;
-    int p;
-    int n;
-    int m;
-    for (k = 0; k < row; k += 8){
-        for (p = 0; p < col; p += 8){
-            for (n = 0; n < 8; ++n){
-                for (m = 0; m < 8; ++m){
-                    dest[des] = source[(k + n) * col + p + m];
-                    des += 1;
-                }
-            }
-        }
-    }
-}
-
 void post_processing(unsigned char *dest, unsigned char *source, int row, int col, int kernel_m, int kernel_n){
     int des = 0;
     int k;
@@ -145,7 +127,7 @@ void nn(int *from, int *to, float * to_address, int m, int n, int kernel_m, int 
     __m256 mul_n = _mm256_set1_ps(n);
     row_diff = _mm256_mul_ps(row_diff, mul_n);
 
-    kernel8x16(to_address, col_diff1, col_diff2, row_diff);
+    NNKernel8x16(to_address, col_diff1, col_diff2, row_diff);
 
     for (int i = 0; i < kernel_m*kernel_n; i++) {
         to[i] = from[(int)to_address[i]];
@@ -170,11 +152,11 @@ void verify(unsigned char *a, int m, int n){
     }
 }
 
-int main(int argc, char** argv )
+int main(int argc, char** argv)
 {
     Mat image;
-    image = imread( "./test.jpeg", 1 );
-    if ( !image.data )
+    image = imread("./test.jpg", 1);
+    if (!image.data)
     {
         printf("No image data \n");
         return -1;
@@ -193,7 +175,6 @@ int main(int argc, char** argv )
         for (size_t x = 0; x < image.cols; ++x) {
 
             unsigned char* data_ptr = &row_ptr[x*image.channels()];
-
 
             B[idx] = data_ptr[0];
             G[idx] = data_ptr[1];
@@ -228,14 +209,19 @@ int main(int argc, char** argv )
     //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
     // };
 
-    // int B[32]= {
-    //     1,2,3,4,5,6,7,8,
-    //     1,2,3,4,5,6,7,8,
-    //     1,2,3,4,5,6,7,8,
-    //     1,2,3,4,5,6,7,8
-    // };
+    
+    for (int i = 0; i < image_cols*image_rows; i++)
+    {
+        B[i]=(unsigned char)i;
+    }
 
-    int des_m=80, des_n=160;
+    for (int i = 0; i < image_cols*image_rows; i++)
+    {
+        cout<<int(B[i])<<" ";
+        cout<<"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+    }
+
+    int des_m=8, des_n=16;
 
     unsigned char *desB, *desG, *desR;
     desB = new unsigned char[des_m*des_n];
@@ -267,6 +253,7 @@ int main(int argc, char** argv )
     // cout<<image_rows<<" "<<image_cols<<" "<<input_row<<" "<<input_col<<" "<<dx<<" "<<dy<<endl; 
     // just color B   
 
+    // #pragma omp parallel for
     for(int i=0; i<image_rows-input_row; i+=input_row){
         for(int j=0; j<image_cols-input_col; j+=input_col){
             int index=0;
@@ -301,11 +288,11 @@ int main(int argc, char** argv )
 
     // printf("\n");
 
-    verify(desB, des_m, des_n);
+    verify(desB, des_m, des_n);// NN packed output
 
     printf("\n");
 
-    verify(outB, des_m, des_n);
+    verify(outB, des_m, des_n);// acutal output
 
     delete desB;
     delete desG;
