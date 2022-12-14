@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
-#include <iostream>
-#include <typeinfo>
-
+#include <iostream> 
 #include <stdlib.h>
 #include <string.h>
 #include <immintrin.h>
+#include <omp.h>
+#include <cstdlib>
 
 #define MAX_FREQ 3.4
 #define BASE_FREQ 2.4
@@ -152,10 +152,36 @@ void verify(unsigned char *a, int m, int n){
     }
 }
 
+void eachColor(int image_rows, int image_cols, int input_row, int input_col, int* from, unsigned char* color,
+               unsigned char* colorDes, int* to, int kernel_m, int kernel_n, float dx, float dy, float* to_address) {
+    int des = 0;
+    // #pragma omp parallel for
+    for(int i=0; i<image_rows; i+=input_row){
+        for(int j=0; j<image_cols; j+=input_col){
+            int index=0;
+            for(int m=0; m<input_row; ++m){
+                for(int n=0; n<input_col; ++n){
+                    from[index] = int(color[(i+m)*image_cols + j + n]);
+                    index++;
+                }
+            }
+            nn(from, to, to_address, input_row, input_col, kernel_m, kernel_n, dx, dy);
+            for(int n=0; n<kernel_m*kernel_n; ++n){
+                colorDes[des] = (unsigned char)(to[n]);
+                des++;
+            }
+        }
+    }
+}
+
 int main(int argc, char** argv)
 {
+
+    int des_m = atoi(argv[1]);
+    int des_n = atoi(argv[2]);
+
     Mat image;
-    image = imread("./test.jpg", 1);
+    image = imread("./16x32.jpg", 1);
     if (!image.data)
     {
         printf("No image data \n");
@@ -170,64 +196,20 @@ int main(int argc, char** argv)
     // cout<<image.cols<<" "<<image.rows<<" "<<image.channels()<<endl;
     int idx = 0;
     for (size_t y = 0; y < image.rows; ++y) {
-
         unsigned char* row_ptr= image.ptr<unsigned char>(y);
         for (size_t x = 0; x < image.cols; ++x) {
-
             unsigned char* data_ptr = &row_ptr[x*image.channels()];
-
             B[idx] = data_ptr[0];
             G[idx] = data_ptr[1];
             R[idx] = data_ptr[2];
             idx++;
-
         }
     }
-
-    // L1 size: 7168
-
-    // cout<<int(B[0])<<" "<<int(G[0])<<" "<<int(R[0])<<endl;
-
-    // int image_rows = 16, image_cols = 32;
-
-    // int B[512]= {
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    //     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    // };
-
-    
-    // for (int i = 0; i < image_cols*image_rows; i++)
-    // {
-    //     B[i]=(unsigned char)i;
-    // }
-
-    for (int i = 0; i < image_cols*image_rows; i++)
-    {
-        cout<<int(B[i])<<" ";
-        cout<<"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
-    }
-
-    int des_m=8, des_n=16;
 
     unsigned char *desB, *desG, *desR;
     desB = new unsigned char[des_m*des_n];
     desG = new unsigned char[des_m*des_n];
     desR = new unsigned char[des_m*des_n];
-    
 
     float dx = 1.0*image_rows/des_m;
     float dy = 1.0*image_cols/des_n;
@@ -235,14 +217,11 @@ int main(int argc, char** argv)
     int kernel_m=8;
     int kernel_n=16;
 
-    int input_row = int(dx*kernel_m);
-    int input_col = int(dy*kernel_n);
+    int input_row = ceil(dx*kernel_m);
+    int input_col = ceil(dy*kernel_n);
 
-
-    
-    
-    int *from; // m*n
-    int *to;// kernel_m*kernel_n
+    int *from; // des_m*des_n original img
+    int *to;// kernel_m*kernel_n img
     float *to_address;
     posix_memalign((void**)&from, 32, input_row*input_col*sizeof(int));
     posix_memalign((void**)&to, 32, kernel_m*kernel_n*sizeof(int));
@@ -250,64 +229,9 @@ int main(int argc, char** argv)
 
     int des = 0;
 
-    // cout<<image_rows<<" "<<image_cols<<" "<<input_row<<" "<<input_col<<" "<<dx<<" "<<dy<<endl; 
-    // just color B   
-
-    // #pragma omp parallel for
-    for(int i=0; i<image_rows-input_row; i+=input_row){
-        for(int j=0; j<image_cols-input_col; j+=input_col){
-            int index=0;
-            for(int m=0; m<input_row; ++m){
-                for(int n=0; n<input_col; ++n){
-                    from[index] = int(B[(i+m)*image_cols + j + n]);
-                    index++;
-                }
-            }
-            nn(from, to, to_address, input_row, input_col, kernel_m, kernel_n, dx, dy);
-            for(int n=0; n<kernel_m*kernel_n; ++n){
-                desB[des] = (unsigned char)(to[n]);
-                des++;
-            }
-        }
-    }
-
-    des = 0;
-
-    for(int i=0; i<image_rows-input_row; i+=input_row){
-        for(int j=0; j<image_cols-input_col; j+=input_col){
-            int index=0;
-            for(int m=0; m<input_row; ++m){
-                for(int n=0; n<input_col; ++n){
-                    from[index] = int(G[(i+m)*image_cols + j + n]);
-                    index++;
-                }
-            }
-            nn(from, to, to_address, input_row, input_col, kernel_m, kernel_n, dx, dy);
-            for(int n=0; n<kernel_m*kernel_n; ++n){
-                desG[des] = (unsigned char)(to[n]);
-                des++;
-            }
-        }
-    }
-
-    des = 0;
-
-    for(int i=0; i<image_rows-input_row; i+=input_row){
-        for(int j=0; j<image_cols-input_col; j+=input_col){
-            int index=0;
-            for(int m=0; m<input_row; ++m){
-                for(int n=0; n<input_col; ++n){
-                    from[index] = int(R[(i+m)*image_cols + j + n]);
-                    index++;
-                }
-            }
-            nn(from, to, to_address, input_row, input_col, kernel_m, kernel_n, dx, dy);
-            for(int n=0; n<kernel_m*kernel_n; ++n){
-                desR[des] = (unsigned char)(to[n]);
-                des++;
-            }
-        }
-    }
+    eachColor(image_rows, image_cols, input_row, input_col, from, B, desB, to, kernel_m, kernel_n, dx, dy, to_address);
+    eachColor(image_rows, image_cols, input_row, input_col, from, G, desG, to, kernel_m, kernel_n, dx, dy, to_address);
+    eachColor(image_rows, image_cols, input_row, input_col, from, R, desR, to, kernel_m, kernel_n, dx, dy, to_address);
 
     delete B;
     delete G;
@@ -338,19 +262,16 @@ int main(int argc, char** argv)
     Mat output_image(des_m, des_n, CV_8UC3);
 
     for (size_t y = 0; y < des_m; ++y) {
-
         unsigned char* row_ptr= output_image.ptr<unsigned char>(y);
         for (size_t x = 0; x < des_n; ++x) {
 
             unsigned char* data_ptr = &row_ptr[x*image.channels()];
-
 
             data_ptr[0] = outB[idx];
             data_ptr[1] = outG[idx];
             data_ptr[2] = outR[idx];
             
             idx++;
-
         }
     }
 
@@ -358,11 +279,11 @@ int main(int argc, char** argv)
 
     cout<<int(outB[0])<<" "<<int(outG[0])<<" "<<int(outR[0])<<endl;
 
-    verify(desB, des_m, des_n);// NN packed output
+    // verify(desB, des_m, des_n);// NN packed output
 
-    printf("\n");
+    // printf("\n");
 
-    verify(outB, des_m, des_n);// acutal output
+    // verify(outB, des_m, des_n);// acutal output
 
     delete desB;
     delete desG;
