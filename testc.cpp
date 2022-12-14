@@ -186,7 +186,7 @@ int main(int argc, char** argv)
 
     // L1 size: 7168
 
-    cout<<int(B[0])<<" "<<int(G[0])<<" "<<int(R[0])<<endl;
+    // cout<<int(B[0])<<" "<<int(G[0])<<" "<<int(R[0])<<endl;
 
     // int image_rows = 16, image_cols = 32;
 
@@ -263,13 +263,49 @@ int main(int argc, char** argv)
                     index++;
                 }
             }
-            // cout<<des<<endl;
             nn(from, to, to_address, input_row, input_col, kernel_m, kernel_n, dx, dy);
             for(int n=0; n<kernel_m*kernel_n; ++n){
                 desB[des] = (unsigned char)(to[n]);
                 des++;
             }
-            // cout<<i<<" "<<j<<" "<<des<<endl;
+        }
+    }
+
+    des = 0;
+
+    for(int i=0; i<image_rows-input_row; i+=input_row){
+        for(int j=0; j<image_cols-input_col; j+=input_col){
+            int index=0;
+            for(int m=0; m<input_row; ++m){
+                for(int n=0; n<input_col; ++n){
+                    from[index] = int(G[(i+m)*image_cols + j + n]);
+                    index++;
+                }
+            }
+            nn(from, to, to_address, input_row, input_col, kernel_m, kernel_n, dx, dy);
+            for(int n=0; n<kernel_m*kernel_n; ++n){
+                desG[des] = (unsigned char)(to[n]);
+                des++;
+            }
+        }
+    }
+
+    des = 0;
+
+    for(int i=0; i<image_rows-input_row; i+=input_row){
+        for(int j=0; j<image_cols-input_col; j+=input_col){
+            int index=0;
+            for(int m=0; m<input_row; ++m){
+                for(int n=0; n<input_col; ++n){
+                    from[index] = int(R[(i+m)*image_cols + j + n]);
+                    index++;
+                }
+            }
+            nn(from, to, to_address, input_row, input_col, kernel_m, kernel_n, dx, dy);
+            for(int n=0; n<kernel_m*kernel_n; ++n){
+                desR[des] = (unsigned char)(to[n]);
+                des++;
+            }
         }
     }
 
@@ -283,10 +319,44 @@ int main(int argc, char** argv)
     outR = new unsigned char[des_m*des_n];
 
     post_processing(outB, desB, des_m, des_n, kernel_m, kernel_n);
+    post_processing(outG, desG, des_m, des_n, kernel_m, kernel_n);
+    post_processing(outR, desR, des_m, des_n, kernel_m, kernel_n);
 
     // verify(B, image_rows, image_cols);
 
     // printf("\n");
+
+    
+    // verify(desB, des_m, des_n);
+
+    // printf("\n");
+
+    // verify(outB, des_m, des_n);
+
+    idx = 0;
+
+    Mat output_image(des_m, des_n, CV_8UC3);
+
+    for (size_t y = 0; y < des_m; ++y) {
+
+        unsigned char* row_ptr= output_image.ptr<unsigned char>(y);
+        for (size_t x = 0; x < des_n; ++x) {
+
+            unsigned char* data_ptr = &row_ptr[x*image.channels()];
+
+
+            data_ptr[0] = outB[idx];
+            data_ptr[1] = outG[idx];
+            data_ptr[2] = outR[idx];
+            
+            idx++;
+
+        }
+    }
+
+    imwrite("./output.jpeg", output_image);
+
+    cout<<int(outB[0])<<" "<<int(outG[0])<<" "<<int(outR[0])<<endl;
 
     verify(desB, des_m, des_n);// NN packed output
 
