@@ -210,10 +210,10 @@ int main(int argc, char** argv)
     // };
 
     
-    for (int i = 0; i < image_cols*image_rows; i++)
-    {
-        B[i]=(unsigned char)i;
-    }
+    // for (int i = 0; i < image_cols*image_rows; i++)
+    // {
+    //     B[i]=(unsigned char)i;
+    // }
 
     for (int i = 0; i < image_cols*image_rows; i++)
     {
