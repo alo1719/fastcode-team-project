@@ -62,6 +62,7 @@ void bilinear_kernel_upscale(
         ymm1 = _mm256_fmadd_ps(ymm5, ymm9, ymm1);
         printf("%d row_indices[1] %d\n", __LINE__, *(row_indices+1));
         print256_num(ymm1);
+        // ymm1 = _mm256_floor_ps(ymm1);
         _mm256_store_ps(&to[0*new_w], ymm1);
 
         ymm2 = _mm256_load_ps(&(from[row_indices[1]]));
