@@ -205,7 +205,7 @@ int main(int argc, char** argv )
 
     // L1 size: 7168
 
-    cout<<int(B[0])<<" "<<int(G[0])<<" "<<int(R[0])<<endl;
+    // cout<<int(B[0])<<" "<<int(G[0])<<" "<<int(R[0])<<endl;
 
     // int image_rows = 16, image_cols = 32;
 
@@ -297,7 +297,7 @@ int main(int argc, char** argv )
             }
             nn(from, to, to_address, input_row, input_col, kernel_m, kernel_n, dx, dy);
             for(int n=0; n<kernel_m*kernel_n; ++n){
-                desB[des] = (unsigned char)(to[n]);
+                desG[des] = (unsigned char)(to[n]);
                 des++;
             }
         }
@@ -316,7 +316,7 @@ int main(int argc, char** argv )
             }
             nn(from, to, to_address, input_row, input_col, kernel_m, kernel_n, dx, dy);
             for(int n=0; n<kernel_m*kernel_n; ++n){
-                desB[des] = (unsigned char)(to[n]);
+                desR[des] = (unsigned char)(to[n]);
                 des++;
             }
         }
