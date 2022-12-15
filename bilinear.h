@@ -237,29 +237,29 @@ void bilinear_kernel_upscale(
         // }
 }
 
-// void bilinear_naive(int ori_h, int ori_w, int new_h, int new_w, float *from, float *to) {
+void bilinear_naive(int ori_h, int ori_w, int new_h, int new_w, float *from, float *to) {
 
-//         float divisionH = (float)ori_h / (float)new_h;
-//         float divisionW = (float)ori_w / (float)new_w;
+        float divisionH = (float)ori_h / (float)new_h;
+        float divisionW = (float)ori_w / (float)new_w;
 
-//         for(int i = 1; i < 7; i++){
-//                 for (int j = 1; j < 7; j++) {
-//                         float x = (float)i * divisionH;
-// 			float y = (float)j * divisionW;
-// 			float agirlikX = x - (int)x;
-// 			float agirlikY = y - (int)y;
-//                         // printf("%f\t%f\t%f\t%f\t\n", (float)(1 - agirlikX) * (float)(1 - agirlikY), (float)agirlikX * (float)(1 - agirlikY), 
-//                         //         (float)(1 - agirlikX) * (float)agirlikY, (float)agirlikX * (float)agirlikY);
-//                         to[i][j] = from[(int)x][(int)y] * (float)(1 - agirlikX) * (float)(1 - agirlikY)
-//                                 + from[(int)x + 1][(int)y] * (float)agirlikX * (float)(1 - agirlikY)
-//                                 + from[(int)x][(int)y + 1] * (float)(1 - agirlikX) * (float)agirlikY
-//                                 + from[(int)x + 1][(int)y + 1] * (float)agirlikX * (float)agirlikY;
-//                 }
-//         }
-//         for(int i = 0; i < 8; i++){
-//                 for (int j = 0; j < 8; j++) {
-//                         printf("%f\t", to[i][j]);
-//                 }
-//                 printf("\n");
-//         }
-// }
+        for(int i = 1; i < 7; i++){
+                for (int j = 1; j < 7; j++) {
+                        float x = (float)i * divisionH;
+			float y = (float)j * divisionW;
+			float agirlikX = x - (int)x;
+			float agirlikY = y - (int)y;
+                        // printf("%f\t%f\t%f\t%f\t\n", (float)(1 - agirlikX) * (float)(1 - agirlikY), (float)agirlikX * (float)(1 - agirlikY), 
+                        //         (float)(1 - agirlikX) * (float)agirlikY, (float)agirlikX * (float)agirlikY);
+                        to[i*8 + j] = from[(int)x*8 + (int)y] * (float)(1 - agirlikX) * (float)(1 - agirlikY)
+                                + from[((int)x + 1)*8 + (int)y] * (float)agirlikX * (float)(1 - agirlikY)
+                                + from[(int)x*8 + (int)y + 1] * (float)(1 - agirlikX) * (float)agirlikY
+                                + from[((int)x + 1)*8 + (int)y + 1] * (float)agirlikX * (float)agirlikY;
+                }
+        }
+        // for(int i = 0; i < 8; i++){
+        //         for (int j = 0; j < 8; j++) {
+        //                 printf("%f\t", to[i*8 + j]);
+        //         }
+        //         printf("\n");
+        // }
+}

@@ -47,6 +47,27 @@ void verify(unsigned char *a, int m, int n){
     }
 }
 
+void eachColorNaive(int image_rows, int image_cols, int des_m, int des_n, unsigned char* color,
+               unsigned char* colorDes) {
+    float divisionH = 1.0*image_rows/des_m;
+    float divisionW = 1.0*image_cols/des_n;
+    #pragma omp parallel for
+    for(int i=0; i<des_m; i+=1){
+        for(int j=0; j<des_n; j+=1){
+            float x = (float)i * divisionH;
+            float y = (float)j * divisionW;
+            float agirlikX = x - (int)x;
+            float agirlikY = y - (int)y;
+            // printf("%f\t%f\t%f\t%f\t\n", (float)(1 - agirlikX) * (float)(1 - agirlikY), (float)agirlikX * (float)(1 - agirlikY), 
+            //         (float)(1 - agirlikX) * (float)agirlikY, (float)agirlikX * (float)agirlikY);
+            colorDes[i*des_n + j] = color[(int)x*des_n + (int)y] * (float)(1 - agirlikX) * (float)(1 - agirlikY)
+                    + color[((int)x + 1)*des_n + (int)y] * (float)agirlikX * (float)(1 - agirlikY)
+                    + color[(int)x*des_n + (int)y + 1] * (float)(1 - agirlikX) * (float)agirlikY
+                    + color[((int)x + 1)*des_n + (int)y + 1] * (float)agirlikX * (float)agirlikY;
+        }
+    }
+}
+
 void eachColor(int image_rows, int image_cols, int input_row, int input_col, float* from, unsigned char* color,
                unsigned char* colorDes, float* to, int kernel_m, int kernel_n) {
     int des = 0;
@@ -97,7 +118,7 @@ void eachColor(int image_rows, int image_cols, int input_row, int input_col, flo
     }
     // print256i_num(mask_floory);
     // print256i_num(mask_flooryp);
-
+    unsigned long long start = rdtsc();
     for(int i=1; i<image_rows+1; i+=input_row){
         for(int j=1; j<image_cols+1; j+=input_col){
             // pack the input matrix needed for one kernel
@@ -118,6 +139,7 @@ void eachColor(int image_rows, int image_cols, int input_row, int input_col, flo
             }
         }
     }
+
 }
 
 int main(int argc, char** argv)
@@ -181,10 +203,22 @@ int main(int argc, char** argv)
     posix_memalign((void**)&to, 32, kernel_m*kernel_n*sizeof(float));
 
     int des = 0;
+    unsigned long long start = rdtsc();
 
-    eachColor(image_rows, image_cols, input_row, input_col, from, B+(image.cols + 2), desB, to, kernel_m, kernel_n);
-    eachColor(image_rows, image_cols, input_row, input_col, from, G+(image.cols + 2), desG, to, kernel_m, kernel_n);
-    eachColor(image_rows, image_cols, input_row, input_col, from, R+(image.cols + 2), desR, to, kernel_m, kernel_n);
+    eachColor(image_rows, image_cols, input_row, input_col, from, B, desB, to, kernel_m, kernel_n);
+    eachColor(image_rows, image_cols, input_row, input_col, from, G, desG, to, kernel_m, kernel_n);
+    eachColor(image_rows, image_cols, input_row, input_col, from, R, desR, to, kernel_m, kernel_n);
+    unsigned long long end = rdtsc();
+    printf("needed cycles: %f\n", (float)(end - start));
+
+    // unsigned long long start_naive = rdtsc();
+
+    // // performance baseline
+    // eachColorNaive(image_rows, image_cols, des_m, des_n, B, desB);
+    // eachColorNaive(image_rows, image_cols, des_m, des_n, B, desB);
+    // eachColorNaive(image_rows, image_cols, des_m, des_n, B, desB);
+    // unsigned long long end_naive = rdtsc();
+    // printf("needed cycles: %f\n", (float)(end_naive - start_naive));
 
     delete B;
     delete G;
